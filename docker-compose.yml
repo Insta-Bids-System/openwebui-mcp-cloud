@@ -1,0 +1,63 @@
+version: '3.9'
+
+# Development docker-compose file
+# For production, use docker-compose.production.yml
+
+services:
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: open-webui-dev
+    ports:
+      - "8080:8080"
+    environment:
+      - ENABLE_COMMUNITY_SHARING=false
+      - ENABLE_MESSAGE_RATING=true
+    volumes:
+      - ./data/openwebui:/app/backend/data
+    networks:
+      - dev-net
+
+  mcp-server:
+    build: ./mcp-server
+    container_name: mcp-server-dev
+    environment:
+      - OPENWEBUI_URL=http://open-webui:8080
+    volumes:
+      - ./data/workspace:/workspace
+    networks:
+      - dev-net
+
+  mcpo-openwebui:
+    image: ghcr.io/open-webui/mcpo:main
+    container_name: mcpo-openwebui-dev
+    ports:
+      - "8101:8000"
+    command: ["--host", "0.0.0.0", "--port", "8000", "--", "python", "/app/main.py"]
+    environment:
+      - MCP_SERVER_URL=http://mcp-server:8888
+    volumes:
+      - ./mcp-server:/app
+    depends_on:
+      - mcp-server
+    networks:
+      - dev-net
+
+  # Optional: LiteLLM for Gemini API support
+  # Uncomment the following lines to use Gemini
+  # litellm:
+  #   image: ghcr.io/berriai/litellm:main-latest
+  #   container_name: litellm
+  #   ports:
+  #     - "4000:4000"
+  #   environment:
+  #     - GEMINI_API_KEY=${GEMINI_API_KEY}
+  #   command: |
+  #     --model gemini/gemini-pro
+  #     --model gemini/gemini-pro-vision
+  #     --port 4000
+  #   networks:
+  #     - dev-net
+
+networks:
+  dev-net:
+    driver: bridge

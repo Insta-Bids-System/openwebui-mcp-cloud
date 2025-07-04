@@ -1,0 +1,27 @@
+model_list:
+  - model_name: gemini-flash-tools
+    litellm_params:
+      model: gemini/gemini-1.5-flash
+      api_key: ${GEMINI_API_KEY}
+      # Enable function calling
+      supports_function_calling: true
+      supports_parallel_function_calling: true
+      
+  - model_name: gpt-3.5-turbo
+    litellm_params:
+      model: openai/gpt-3.5-turbo
+      api_key: ${OPENAI_API_KEY}
+      
+  - model_name: gpt-4-turbo
+    litellm_params:
+      model: openai/gpt-4-turbo-preview
+      api_key: ${OPENAI_API_KEY}
+
+litellm_settings:
+  drop_params: false  # Important: Don't drop function calling params
+  set_verbose: true   # See what's happening
+  
+# Enable function calling pass-through
+general_settings:
+  pass_through_function_calls: true
+  enable_function_calling: true

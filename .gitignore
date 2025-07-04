@@ -1,0 +1,58 @@
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Data directories
+data/
+backup*/
+
+# Docker volumes
+postgres-data/
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.cache
+
+# Secrets and credentials
+*.pem
+*.key
+*.cert
+secrets/
+
+# Test outputs
+test-results/
+coverage/
+
+# Custom MCP server builds
+mcp-server/dist/
+mcp-server/build/
+
+# Local configuration
+config.local.json
+settings.local.json

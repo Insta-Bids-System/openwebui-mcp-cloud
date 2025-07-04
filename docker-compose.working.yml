@@ -1,0 +1,53 @@
+version: '3.9'
+
+services:
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: open-webui
+    ports:
+      - "8080:8080"
+    environment:
+      - ENABLE_COMMUNITY_SHARING=false
+      - ENABLE_MESSAGE_RATING=true
+    volumes:
+      - ./data/openwebui:/app/backend/data
+
+  litellm:
+    image: ghcr.io/berriai/litellm:main-latest
+    container_name: litellm
+    ports:
+      - "4000:4000"
+    environment:
+      - GEMINI_API_KEY=YOUR_GEMINI_API_KEY_HERE
+    command: |
+      --model gemini/gemini-pro
+      --model gemini/gemini-pro-vision
+      --model gemini/gemini-1.5-pro
+      --model gemini/gemini-1.5-flash
+      --port 4000
+
+  # Working MCP servers that actually exist
+  mcpo-filesystem:
+    image: ghcr.io/open-webui/mcpo:main
+    container_name: mcpo-filesystem
+    ports:
+      - "8101:8000"
+    command: ["mcpo", "--host", "0.0.0.0", "--port", "8000", "--", "uvx", "mcp-server-filesystem", "/workspace"]
+    volumes:
+      - ./data/workspace:/workspace
+
+  mcpo-github:
+    image: ghcr.io/open-webui/mcpo:main
+    container_name: mcpo-github
+    ports:
+      - "8102:8000"
+    command: ["mcpo", "--host", "0.0.0.0", "--port", "8000", "--", "uvx", "mcp-server-github"]
+    environment:
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+
+  mcpo-time:
+    image: ghcr.io/open-webui/mcpo:main
+    container_name: mcpo-time
+    ports:
+      - "8103:8000"
+    command: ["mcpo", "--host", "0.0.0.0", "--port", "8000", "--", "uvx", "mcp-server-time"]

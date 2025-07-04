@@ -1,0 +1,19 @@
+  # Filesystem MCP for LOCAL repository access
+  mcpo-filesystem:
+    image: ghcr.io/open-webui/mcpo:main
+    container_name: local-mcpo-filesystem
+    ports:
+      - "8103:8000"
+    command: [
+      "--host", "0.0.0.0", 
+      "--port", "8000", 
+      "--api-key", "${MCP_API_KEY}", 
+      "--", 
+      "npx", "-y", "@modelcontextprotocol/server-filesystem", 
+      "/workspace"  # This should be your code directory
+    ]
+    volumes:
+      - ./data/workspace:/workspace  # Map your local code here
+      - /path/to/your/repos:/repos   # Add your git repos directory
+    networks:
+      - local-ai-net
