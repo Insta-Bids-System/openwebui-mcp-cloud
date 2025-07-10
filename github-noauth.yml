@@ -1,0 +1,16 @@
+  # GitHub MCP Tools (No Auth for Testing)
+  mcpo-github-noauth:
+    image: ghcr.io/open-webui/mcpo:main
+    container_name: local-mcpo-github-noauth
+    ports:
+      - "8106:8000"
+    command: [
+      "--host", "0.0.0.0", 
+      "--port", "8000", 
+      "--", 
+      "npx", "-y", "@modelcontextprotocol/server-github"
+    ]
+    environment:
+      - GITHUB_PERSONAL_ACCESS_TOKEN=${GITHUB_TOKEN}
+    networks:
+      - local-ai-net

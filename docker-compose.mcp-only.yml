@@ -1,0 +1,109 @@
+version: '3.9'
+
+services:
+  # Your custom MCP server
+  mcp-server:
+    build: ./mcp-server
+    container_name: local-mcp-server
+    environment:
+      - OPENWEBUI_URL=http://host.docker.internal:3000
+      - OPENWEBUI_API_KEY=${OPENWEBUI_API_KEY}
+    volumes:
+      - ./data/workspace:/workspace
+    networks:
+      - local-ai-net
+
+  # MCPO Bridge for OpenWebUI tools
+  mcpo-openwebui:
+    image: ghcr.io/open-webui/mcpo:main
+    container_name: local-mcpo-openwebui
+    ports:
+      - "8101:8000"
+    command: [
+      "--host", "0.0.0.0", 
+      "--port", "8000", 
+      "--api-key", "${MCP_API_KEY}", 
+      "--", 
+      "python", "-m", "mcp_server"
+    ]
+    depends_on:
+      - mcp-server
+    networks:
+      - local-ai-net
+
+  # GitHub MCP Tools
+  mcpo-github:
+    image: ghcr.io/open-webui/mcpo:main
+    container_name: local-mcpo-github
+    ports:
+      - "8102:8000"
+    command: [
+      "--host", "0.0.0.0", 
+      "--port", "8000", 
+      "--api-key", "${MCP_API_KEY}", 
+      "--", 
+      "npx", "-y", "@modelcontextprotocol/server-github"
+    ]
+    environment:
+      - GITHUB_PERSONAL_ACCESS_TOKEN=${GITHUB_TOKEN}
+    networks:
+      - local-ai-net
+
+  # Filesystem MCP Tools
+  mcpo-filesystem:
+    image: ghcr.io/open-webui/mcpo:main
+    container_name: local-mcpo-filesystem
+    ports:
+      - "8103:8000"
+    command: [
+      "--host", "0.0.0.0", 
+      "--port", "8000", 
+      "--api-key", "${MCP_API_KEY}", 
+      "--", 
+      "npx", "-y", "@modelcontextprotocol/server-filesystem", 
+      "/workspace"
+    ]
+    volumes:
+      - ./data/workspace:/workspace
+    networks:
+      - local-ai-net
+
+  # Brave Search MCP Tools
+  mcpo-brave-search:
+    image: ghcr.io/open-webui/mcpo:main
+    container_name: local-mcpo-brave-search
+    ports:
+      - "8104:8000"
+    command: [
+      "--host", "0.0.0.0", 
+      "--port", "8000", 
+      "--api-key", "${MCP_API_KEY}", 
+      "--", 
+      "npx", "-y", "@modelcontextprotocol/server-brave-search"
+    ]
+    environment:
+      - BRAVE_API_KEY=${BRAVE_API_KEY}
+    networks:
+      - local-ai-net
+
+  # Memory MCP Tools
+  mcpo-memory:
+    image: ghcr.io/open-webui/mcpo:main
+    container_name: local-mcpo-memory
+    ports:
+      - "8105:8000"
+    command: [
+      "--host", "0.0.0.0", 
+      "--port", "8000", 
+      "--api-key", "${MCP_API_KEY}", 
+      "--", 
+      "npx", "-y", "@modelcontextprotocol/server-memory"
+    ]
+    volumes:
+      - ./data/memory:/data/memory
+    networks:
+      - local-ai-net
+
+networks:
+  local-ai-net:
+    driver: bridge 

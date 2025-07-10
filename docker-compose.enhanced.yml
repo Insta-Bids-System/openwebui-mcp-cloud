@@ -1,0 +1,89 @@
+version: '3.8'
+
+networks:
+  local-ai-net:
+    driver: bridge
+
+services:
+  # Core MCP Servers
+  local-mcpo-github-internal:
+    image: ghcr.io/open-webui/mcpo:main
+    container_name: local-mcpo-github-internal
+    command: ["mcpo", "--host", "0.0.0.0", "--port", "8000", "--service", "github"]
+    environment:
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - MCP_API_KEY=local-mcp-key-for-testing
+    networks:
+      - local-ai-net
+    restart: unless-stopped
+
+  local-mcpo-filesystem:
+    image: ghcr.io/open-webui/mcpo:main
+    container_name: local-mcpo-filesystem
+    command: ["mcpo", "--host", "0.0.0.0", "--port", "8000", "--service", "filesystem"]
+    volumes:
+      - ./data/workspace:/workspace
+    environment:
+      - MCP_API_KEY=local-mcp-key-for-testing
+    ports:
+      - "8104:8000"
+    networks:
+      - local-ai-net
+    restart: unless-stopped
+
+  # Enhanced Wrappers  
+  github-wrapper:
+    build:
+      context: ./mcp-github-wrapper
+      dockerfile: Dockerfile
+    container_name: local-github-wrapper
+    environment:
+      - MCP_API_KEY=local-mcp-key-for-testing
+    ports:
+      - "8102:8000"
+    depends_on:
+      - local-mcpo-github-internal
+    networks:
+      - local-ai-net
+    restart: unless-stopped
+
+  filesystem-wrapper:
+    build:
+      context: ./mcp-filesystem-wrapper
+      dockerfile: Dockerfile
+    container_name: local-filesystem-wrapper
+    environment:
+      - MCP_API_KEY=local-mcp-key-for-testing
+    ports:
+      - "8107:8000"
+    depends_on:
+      - local-mcpo-filesystem
+    networks:
+      - local-ai-net
+    restart: unless-stopped
+
+  # Additional MCP Services
+  local-mcpo-brave-search:
+    image: ghcr.io/open-webui/mcpo:main
+    container_name: local-mcpo-brave-search
+    command: ["mcpo", "--host", "0.0.0.0", "--port", "8000", "--service", "brave_search"]
+    environment:
+      - BRAVE_SEARCH_API_KEY=${BRAVE_SEARCH_API_KEY}
+      - MCP_API_KEY=local-mcp-key-for-testing
+    ports:
+      - "8105:8000"
+    networks:
+      - local-ai-net
+    restart: unless-stopped
+
+  local-mcpo-memory:
+    image: ghcr.io/open-webui/mcpo:main
+    container_name: local-mcpo-memory
+    command: ["mcpo", "--host", "0.0.0.0", "--port", "8000", "--service", "memory"]
+    environment:
+      - MCP_API_KEY=local-mcp-key-for-testing
+    ports:
+      - "8106:8000"
+    networks:
+      - local-ai-net
+    restart: unless-stopped 

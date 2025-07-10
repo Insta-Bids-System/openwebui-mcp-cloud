@@ -1,0 +1,114 @@
+version: '3.9'
+
+services:
+  # === Core Services ===
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: open-webui
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=${POSTGRES_URL}
+      - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY}
+      - REDIS_URL=${REDIS_URL}
+      - ENABLE_COMMUNITY_SHARING=false
+      - ENABLE_MESSAGE_RATING=true
+      - DEFAULT_LOCALE=en
+    volumes:
+      - /data/openwebui/backend:/app/backend/data
+    networks:
+      - ai-hub-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # === MCP Server Layer ===
+  mcp-server:
+    build: ./mcp-server
+    container_name: mcp-server
+    restart: unless-stopped
+    environment:
+      - OPENWEBUI_URL=http://open-webui:8080
+      - OPENWEBUI_API_KEY=${OPENWEBUI_API_KEY}
+      - REDIS_URL=${REDIS_URL}
+    volumes:
+      - /data/workspace:/workspace
+    networks:
+      - ai-hub-net
+  # === MCPO Bridge Layer ===
+  mcpo-openwebui:
+    image: ghcr.io/open-webui/mcpo:main
+    container_name: mcpo-openwebui
+    restart: unless-stopped
+    ports:
+      - "8101:8000"
+    command: ["--host", "0.0.0.0", "--port", "8000", "--api-key", "${MCP_API_KEY}", "--", "python", "-m", "mcp_server"]
+    environment:
+      - MCP_SERVER_URL=http://mcp-server:8888
+    depends_on:
+      - mcp-server
+    networks:
+      - ai-hub-net
+
+  mcpo-github:
+    image: ghcr.io/open-webui/mcpo:main
+    container_name: mcpo-github
+    restart: unless-stopped
+    ports:
+      - "8102:8000"
+    command: ["--host", "0.0.0.0", "--port", "8000", "--api-key", "${MCP_API_KEY}", "--", "uvx", "mcp-server-github"]
+    environment:
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+    networks:
+      - ai-hub-net
+
+  mcpo-digitalocean:
+    image: ghcr.io/open-webui/mcpo:main
+    container_name: mcpo-digitalocean
+    restart: unless-stopped
+    ports:
+      - "8103:8000"
+    command: ["--host", "0.0.0.0", "--port", "8000", "--api-key", "${MCP_API_KEY}", "--", "python", "-m", "digitalocean_mcp"]
+    environment:
+      - DO_API_TOKEN=${DO_API_TOKEN}
+    networks:
+      - ai-hub-net
+  # === Supporting Services ===
+  filebrowser:
+    image: filebrowser/filebrowser:latest
+    container_name: filebrowser
+    restart: unless-stopped
+    environment:
+      - FB_USERNAME=${FB_USERNAME}
+      - FB_PASSWORD=${FB_PASSWORD}
+    volumes:
+      - /data/workspace:/srv
+      - /data/filebrowser/database.db:/database.db
+    networks:
+      - ai-hub-net
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/production.conf:/etc/nginx/nginx.conf:ro
+      - /data/nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      - open-webui
+      - mcpo-openwebui
+      - filebrowser
+    networks:
+      - ai-hub-net
+
+networks:
+  ai-hub-net:
+    driver: bridge
+
+volumes:
+  workspace-data:
+    driver: local

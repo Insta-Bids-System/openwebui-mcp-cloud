@@ -1,0 +1,20 @@
+  # MCPO Bridge for OpenWebUI tools - Fixed for HTTP connection
+  mcpo-openwebui:
+    image: ghcr.io/open-webui/mcpo:main
+    container_name: local-mcpo-openwebui
+    ports:
+      - "8101:8000"
+    environment:
+      - MCP_SERVER_URL=http://mcp-server:8888
+    command: [
+      "--host", "0.0.0.0", 
+      "--port", "8000", 
+      "--api-key", "${MCP_API_KEY}",
+      "--transport", "http",
+      "--", 
+      "http://mcp-server:8888"
+    ]
+    depends_on:
+      - mcp-server
+    networks:
+      - local-ai-net

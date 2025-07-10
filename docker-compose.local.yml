@@ -1,0 +1,178 @@
+version: '3.9'
+
+services:
+  # Local PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: local-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: localpassword
+      POSTGRES_DB: openwebui
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - local-ai-net
+
+  # Local Redis
+  redis:
+    image: redis:7-alpine
+    container_name: local-redis
+    networks:
+      - local-ai-net
+
+  # OpenWebUI
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: local-open-webui
+    ports:
+      - "8080:8080"
+    environment:
+      - DATABASE_URL=${POSTGRES_URL}
+      - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY}
+      - REDIS_URL=${REDIS_URL}
+      - ENABLE_COMMUNITY_SHARING=false
+      - ENABLE_MESSAGE_RATING=true
+      - DEFAULT_LOCALE=en
+      - WEBUI_AUTH=false  # Disable auth for local testing
+    volumes:
+      - ./data/openwebui:/app/backend/data
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - local-ai-net
+
+  # Your custom MCP server
+  mcp-server:
+    build: ./mcp-server
+    container_name: local-mcp-server
+    environment:
+      - OPENWEBUI_URL=http://open-webui:8080
+      - OPENWEBUI_API_KEY=${OPENWEBUI_API_KEY}
+      - REDIS_URL=${REDIS_URL}
+    volumes:
+      - ./data/workspace:/workspace
+    networks:
+      - local-ai-net
+
+  # MCPO Bridge for OpenWebUI tools
+  mcpo-openwebui:
+    image: ghcr.io/open-webui/mcpo:main
+    container_name: local-mcpo-openwebui
+    ports:
+      - "8101:8000"
+    command: [
+      "--host", "0.0.0.0", 
+      "--port", "8000", 
+      "--api-key", "${MCP_API_KEY}", 
+      "--", 
+      "python", "/workspace/stdio_server.py"
+    ]
+    volumes:
+      - ./mcp-server:/workspace
+    environment:
+      - OPENWEBUI_URL=http://open-webui:8080
+      - OPENWEBUI_API_KEY=${OPENWEBUI_API_KEY}
+      - REDIS_URL=${REDIS_URL}
+    depends_on:
+      - mcp-server
+    networks:
+      - local-ai-net
+
+  # GitHub MCP Tools (Internal) - Now exposed directly
+  mcpo-github-internal:
+    image: ghcr.io/open-webui/mcpo:main
+    container_name: local-mcpo-github-internal
+    ports:
+      - "8103:8000"  # Now exposed directly
+    command: [
+      "--host", "0.0.0.0", 
+      "--port", "8000", 
+      "--api-key", "${MCP_API_KEY}", 
+      "--", 
+      "npx", "-y", "@modelcontextprotocol/server-github"
+    ]
+    environment:
+      - GITHUB_PERSONAL_ACCESS_TOKEN=${GITHUB_TOKEN}
+    networks:
+      - local-ai-net
+
+  # Filesystem MCP Tools
+  mcpo-filesystem:
+    image: ghcr.io/open-webui/mcpo:main
+    container_name: local-mcpo-filesystem
+    ports:
+      - "8104:8000"
+    command: [
+      "--host", "0.0.0.0", 
+      "--port", "8000", 
+      "--api-key", "${MCP_API_KEY}", 
+      "--", 
+      "npx", "-y", "@modelcontextprotocol/server-filesystem", 
+      "/workspace"
+    ]
+    volumes:
+      - ./data/workspace:/workspace
+    networks:
+      - local-ai-net
+
+  # Brave Search MCP Tools
+  mcpo-brave-search:
+    image: ghcr.io/open-webui/mcpo:main
+    container_name: local-mcpo-brave-search
+    ports:
+      - "8105:8000"
+    command: [
+      "--host", "0.0.0.0", 
+      "--port", "8000", 
+      "--api-key", "${MCP_API_KEY}", 
+      "--", 
+      "npx", "-y", "@modelcontextprotocol/server-brave-search"
+    ]
+    environment:
+      - BRAVE_API_KEY=${BRAVE_API_KEY}
+    networks:
+      - local-ai-net
+
+  # Memory MCP Tools
+  mcpo-memory:
+    image: ghcr.io/open-webui/mcpo:main
+    container_name: local-mcpo-memory
+    ports:
+      - "8106:8000"
+    command: [
+      "--host", "0.0.0.0", 
+      "--port", "8000", 
+      "--api-key", "${MCP_API_KEY}", 
+      "--", 
+      "npx", "-y", "@modelcontextprotocol/server-memory"
+    ]
+    volumes:
+      - ./data/memory:/data/memory
+    networks:
+      - local-ai-net
+
+  # LiteLLM with Latest Gemini Models (Simple Setup)
+  litellm:
+    image: ghcr.io/berriai/litellm:main-latest
+    container_name: local-litellm
+    ports:
+      - "4000:4000"
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - LITELLM_LOG=INFO
+    command: [
+      "--model", "gemini/gemini-2.5-flash-preview-05-20",
+      "--port", "4000",
+      "--host", "0.0.0.0"
+    ]
+    networks:
+      - local-ai-net
+
+networks:
+  local-ai-net:
+    driver: bridge
+
+volumes:
+  postgres-data:

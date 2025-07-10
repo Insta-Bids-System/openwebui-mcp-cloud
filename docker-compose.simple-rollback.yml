@@ -1,0 +1,122 @@
+version: '3.9'
+
+services:
+  # Local PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: local-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: localpassword
+      POSTGRES_DB: openwebui
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - local-ai-net
+
+  # Local Redis
+  redis:
+    image: redis:7-alpine
+    container_name: local-redis
+    networks:
+      - local-ai-net
+
+  # OpenWebUI
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: local-open-webui
+    ports:
+      - "8080:8080"
+    environment:
+      - DATABASE_URL=${POSTGRES_URL}
+      - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY}
+      - REDIS_URL=${REDIS_URL}
+      - ENABLE_COMMUNITY_SHARING=false
+      - ENABLE_MESSAGE_RATING=true
+      - DEFAULT_LOCALE=en
+      - WEBUI_AUTH=false  # Disable auth for local testing
+    volumes:
+      - ./data/openwebui:/app/backend/data
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - local-ai-net
+
+  # Your custom MCP server
+  mcp-server:
+    build: ./mcp-server
+    container_name: local-mcp-server
+    environment:
+      - OPENWEBUI_URL=http://open-webui:8080
+      - OPENWEBUI_API_KEY=${OPENWEBUI_API_KEY}
+      - REDIS_URL=${REDIS_URL}
+    volumes:
+      - ./data/workspace:/workspace
+    networks:
+      - local-ai-net
+
+  # MCPO Bridge for OpenWebUI tools (Port 8101)
+  mcpo-openwebui:
+    image: ghcr.io/open-webui/mcpo:main
+    container_name: local-mcpo-openwebui
+    ports:
+      - "8101:8000"
+    command: [
+      "--host", "0.0.0.0", 
+      "--port", "8000", 
+      "--api-key", "${MCP_API_KEY}", 
+      "--", 
+      "python", "/workspace/stdio_server.py"
+    ]
+    volumes:
+      - ./mcp-server:/workspace
+    environment:
+      - OPENWEBUI_URL=http://open-webui:8080
+      - OPENWEBUI_API_KEY=${OPENWEBUI_API_KEY}
+      - REDIS_URL=${REDIS_URL}
+    depends_on:
+      - mcp-server
+    networks:
+      - local-ai-net
+
+  # GitHub MCP Tools (Port 8102)
+  mcpo-github:
+    image: ghcr.io/open-webui/mcpo:main
+    container_name: local-mcpo-github
+    ports:
+      - "8102:8000"
+    command: [
+      "--host", "0.0.0.0", 
+      "--port", "8000", 
+      "--api-key", "${MCP_API_KEY}", 
+      "--", 
+      "npx", "-y", "@modelcontextprotocol/server-github"
+    ]
+    environment:
+      - GITHUB_PERSONAL_ACCESS_TOKEN=${GITHUB_TOKEN}
+    networks:
+      - local-ai-net
+
+  # Gemini Support via LiteLLM (Port 4000)
+  litellm:
+    image: ghcr.io/berriai/litellm:main-latest
+    container_name: local-litellm
+    ports:
+      - "4000:4000"
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    command: |
+      --model gemini/gemini-pro
+      --model gemini/gemini-1.5-pro
+      --model gemini/gemini-1.5-flash
+      --port 4000
+    networks:
+      - local-ai-net
+
+networks:
+  local-ai-net:
+    driver: bridge
+
+volumes:
+  postgres-data: 

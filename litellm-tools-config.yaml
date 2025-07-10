@@ -1,0 +1,101 @@
+model_list:
+  # Gemini 2.5 Pro Preview (Most Advanced - Best for Complex Tool Calling)
+  - model_name: gemini-2.5-pro
+    litellm_params:
+      model: gemini/gemini-2.5-pro-preview-06-05
+      api_key: ${GEMINI_API_KEY}
+      supports_function_calling: true
+      supports_parallel_function_calling: true
+      supports_vision: true
+      supports_system_message: true
+      max_tokens: 8192
+      
+  # Gemini 2.5 Flash Preview (Best Price-Performance with Thinking)
+  - model_name: gemini-2.5-flash
+    litellm_params:
+      model: gemini/gemini-2.5-flash-preview-05-20
+      api_key: ${GEMINI_API_KEY}
+      supports_function_calling: true
+      supports_parallel_function_calling: true
+      supports_vision: true
+      supports_system_message: true
+      max_tokens: 8192
+      
+  # Gemini 2.0 Flash (Next Generation Features)
+  - model_name: gemini-2.0-flash
+    litellm_params:
+      model: gemini/gemini-2.0-flash
+      api_key: ${GEMINI_API_KEY}
+      supports_function_calling: true
+      supports_parallel_function_calling: true
+      supports_vision: true
+      supports_system_message: true
+      max_tokens: 8192
+      
+  # Gemini 2.0 Flash-Lite (Cost Efficient)
+  - model_name: gemini-2.0-flash-lite
+    litellm_params:
+      model: gemini/gemini-2.0-flash-lite
+      api_key: ${GEMINI_API_KEY}
+      supports_function_calling: true
+      supports_parallel_function_calling: true
+      supports_vision: true
+      supports_system_message: true
+      max_tokens: 8192
+      
+  # Gemini 1.5 Pro (Stable Fallback)
+  - model_name: gemini-1.5-pro
+    litellm_params:
+      model: gemini/gemini-1.5-pro
+      api_key: ${GEMINI_API_KEY}
+      supports_function_calling: true
+      supports_parallel_function_calling: true
+      supports_vision: true
+      supports_system_message: true
+      max_tokens: 8192
+      
+  # Gemini 1.5 Flash (Fast & Efficient)
+  - model_name: gemini-1.5-flash
+    litellm_params:
+      model: gemini/gemini-1.5-flash
+      api_key: ${GEMINI_API_KEY}
+      supports_function_calling: true
+      supports_parallel_function_calling: true
+      supports_vision: true
+      supports_system_message: true
+      max_tokens: 8192
+      
+  # Gemini 1.5 Flash-8B (Ultra Efficient)
+  - model_name: gemini-1.5-flash-8b
+    litellm_params:
+      model: gemini/gemini-1.5-flash-8b
+      api_key: ${GEMINI_API_KEY}
+      supports_function_calling: true
+      supports_parallel_function_calling: true
+      supports_vision: true
+      supports_system_message: true
+      max_tokens: 8192
+
+# General settings
+general_settings:
+  completion_model: gemini-2.5-pro  # Default to most advanced model
+  disable_logging: false
+
+litellm_settings:
+  drop_params: false  # Critical: Don't drop function calling params
+  set_verbose: true   # Debug tool calling
+  success_callback: ["langfuse"]  # Optional: for monitoring
+  
+# Enhanced function calling settings
+general_settings:
+  master_key: "local-litellm-key"  # For security
+  pass_through_function_calls: true
+  enable_function_calling: true
+  max_parallel_requests: 10
+  
+# Router settings for better performance
+router_settings:
+  routing_strategy: "least-busy"
+  model_group_alias:
+    "gemini-latest": ["gemini-2.5-flash", "gemini-2.5-pro"]
+    "gemini-stable": ["gemini-1.5-pro", "gemini-1.5-flash"]

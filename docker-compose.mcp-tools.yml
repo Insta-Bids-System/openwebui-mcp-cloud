@@ -1,0 +1,78 @@
+# docker-compose.mcp-tools.yml
+# Updated MCP tool services using working community servers
+
+  # Replace the broken mcpo-github with this:
+  mcpo-github:
+    image: ghcr.io/open-webui/mcpo:main
+    container_name: mcpo-github
+    restart: unless-stopped
+    ports:
+      - "8102:8000"
+    command: [
+      "--host", "0.0.0.0", 
+      "--port", "8000", 
+      "--api-key", "${MCP_API_KEY}", 
+      "--", 
+      "npx", "-y", "@modelcontextprotocol/server-github"
+    ]
+    environment:
+      - GITHUB_PERSONAL_ACCESS_TOKEN=${GITHUB_TOKEN}
+    networks:
+      - ai-hub-net
+
+  # Replace mcpo-digitalocean with mcpo-filesystem (more useful):
+  mcpo-filesystem:
+    image: ghcr.io/open-webui/mcpo:main
+    container_name: mcpo-filesystem
+    restart: unless-stopped
+    ports:
+      - "8103:8000"
+    command: [
+      "--host", "0.0.0.0", 
+      "--port", "8000", 
+      "--api-key", "${MCP_API_KEY}", 
+      "--", 
+      "npx", "-y", "@modelcontextprotocol/server-filesystem", 
+      "/data/workspace"
+    ]
+    volumes:
+      - /data/workspace:/data/workspace
+    networks:
+      - ai-hub-net
+
+  # Add these new services:
+  mcpo-brave-search:
+    image: ghcr.io/open-webui/mcpo:main
+    container_name: mcpo-brave-search
+    restart: unless-stopped
+    ports:
+      - "8104:8000"
+    command: [
+      "--host", "0.0.0.0", 
+      "--port", "8000", 
+      "--api-key", "${MCP_API_KEY}", 
+      "--", 
+      "npx", "-y", "@modelcontextprotocol/server-brave-search"
+    ]
+    environment:
+      - BRAVE_API_KEY=${BRAVE_API_KEY}
+    networks:
+      - ai-hub-net
+
+  mcpo-memory:
+    image: ghcr.io/open-webui/mcpo:main
+    container_name: mcpo-memory
+    restart: unless-stopped
+    ports:
+      - "8105:8000"
+    command: [
+      "--host", "0.0.0.0", 
+      "--port", "8000", 
+      "--api-key", "${MCP_API_KEY}", 
+      "--", 
+      "npx", "-y", "@modelcontextprotocol/server-memory"
+    ]
+    volumes:
+      - /data/memory:/data/memory
+    networks:
+      - ai-hub-net
