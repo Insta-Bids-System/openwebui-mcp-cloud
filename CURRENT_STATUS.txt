@@ -1,0 +1,35 @@
+=====================================
+OpenWebUI + MCP Tools - Status Summary
+=====================================
+
+✅ All services are running!
+
+Access URLs:
+- OpenWebUI: http://localhost:8080
+- LiteLLM (Gemini): http://localhost:4000
+- MCP Tools: Ports 8101-8106
+
+Next Steps:
+1. Open http://localhost:8080 in your browser
+2. Create/Login to your account
+3. Go to Settings → Connections
+4. Add these connections:
+
+   OpenAI:
+   - Type: OpenAI
+   - API Key: [Your OpenAI key from .env]
+   
+   Gemini (via LiteLLM):
+   - Type: OpenAI Compatible
+   - Name: Gemini
+   - Base URL: http://litellm:4000/v1
+   - API Key: sk-123 (any string)
+
+5. Click Save
+6. Logout and Login again
+7. Models should appear in the dropdown!
+
+If models still don't appear:
+- Try in an incognito window
+- Clear browser cache for localhost:8080
+- Check docker logs: docker logs local-open-webui
