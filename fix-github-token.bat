@@ -17,7 +17,7 @@ echo.
 echo 3. Copy your new token (starts with ghp_)
 echo.
 echo 4. Edit .env.local and replace this line:
-echo    GITHUB_TOKEN=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
+echo    GITHUB_TOKEN=ghp_PLACEHOLDER_TOKEN_REPLACE_ME
 echo    with:
 echo    GITHUB_TOKEN=your_actual_token_here
 echo.

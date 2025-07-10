@@ -4,7 +4,7 @@
 
 You're getting an "Authentication Failed. Bad credentials" error because:
 - The GitHub token in your `.env.local` file is invalid
-- You're using the placeholder token: `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`
+- You're using the placeholder token: `ghp_PLACEHOLDER_TOKEN_REPLACE_ME`
 
 ## ✅ Quick Fix
 
@@ -25,7 +25,7 @@ You're getting an "Authentication Failed. Bad credentials" error because:
 1. Open `.env.local` in a text editor
 2. Find this line:
    ```
-   GITHUB_TOKEN=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
+   GITHUB_TOKEN=ghp_PLACEHOLDER_TOKEN_REPLACE_ME
    ```
 3. Replace it with your actual token:
    ```
@@ -118,4 +118,4 @@ If you're still having issues:
 3. Try generating a fresh token
 4. Check if your GitHub account has any restrictions
 
-Remember: The placeholder token `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` will NEVER work - you must use your own token!
+Remember: The placeholder token will NEVER work - you must use your own token!
