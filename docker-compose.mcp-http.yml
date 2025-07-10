@@ -1,0 +1,28 @@
+version: '3.9'
+
+services:
+  # Custom MCP Server - Direct HTTP Integration
+  mcp-server-http:
+    build: ./mcp-server
+    container_name: local-mcp-server-http
+    ports:
+      - "8101:8888"
+    environment:
+      - OPENWEBUI_URL=http://open-webui:8080
+      - OPENWEBUI_API_KEY=${OPENWEBUI_API_KEY}
+      - MCP_API_KEY=${MCP_API_KEY}
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - ./data/workspace:/workspace
+    networks:
+      - local-ai-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  local-ai-net:
+    external: true

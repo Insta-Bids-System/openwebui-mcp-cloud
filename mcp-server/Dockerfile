@@ -14,7 +14,11 @@ RUN pip install --no-cache-dir \
     aiohttp \
     redis \
     asyncio \
-    urllib3
+    urllib3 \
+    fastapi \
+    uvicorn \
+    pydantic \
+    httpx
 
 # Copy application code
 COPY . /app
@@ -22,8 +26,8 @@ COPY . /app
 # Create workspace directory
 RUN mkdir -p /workspace
 
-# Expose port for MCP server
+# Expose port for HTTP server
 EXPOSE 8888
 
-# Run the MCP server
-CMD ["python", "-m", "main"]
+# Run the HTTP server
+CMD ["python", "-m", "http_server"]
