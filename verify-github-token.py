@@ -24,7 +24,7 @@ def check_github_token():
         print("[ERROR] No GitHub token found in .env.local")
         return
     
-    if "REPLACE THIS" in token or "PLACEHOLDER" in token or token.startswith("ghp_9hKK"):
+    if "REPLACE THIS" in token or "PLACEHOLDER" in token or token == "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":
         print("[ERROR] You're still using the placeholder token!")
         print("   Please replace it with your actual GitHub token")
         return

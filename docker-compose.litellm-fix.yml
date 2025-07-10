@@ -1,0 +1,35 @@
+version: '3.9'
+
+services:
+  # LiteLLM with Multiple Model Support
+  litellm:
+    image: ghcr.io/berriai/litellm:main-latest
+    container_name: local-litellm-multi
+    ports:
+      - "4000:4000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - LITELLM_LOG=DEBUG
+      - LITELLM_PROXY_BASE_URL=http://localhost:4000
+    volumes:
+      - ./litellm-config.yaml:/app/config.yaml
+    command: [
+      "--config", "/app/config.yaml",
+      "--port", "4000",
+      "--detailed_debug"
+    ]
+    networks:
+      - local-ai-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  local-ai-net:
+    external: true
+    name: openwebui-mcp_local-ai-net
