@@ -1,5 +1,5 @@
 # 📋 Insta-Bids OpenWebUI MCP - Living Document
-*Last Updated: January 31, 2025 - MCP Server Fixed!*
+*Last Updated: January 31, 2025 - MCP Server Fixed! (Pending GitHub Token Update)*
 
 ## 🚀 Project Overview
 
@@ -116,6 +116,14 @@ For long-running operations:
 - Better handling of GitHub API rate limits
 
 ## 📋 Priority Action Items
+
+### ⚠️ Immediate Action Required
+
+1. **Update GitHub Token**
+   - Current token is a placeholder and causing authentication errors
+   - Create new token at: https://github.com/settings/tokens/new
+   - Update in `.env.local` and restart GitHub service
+   - This will unlock GitHub search, create, and other operations
 
 ### ✅ Completed (Jan 31, 2025)
 1. **Fixed Custom MCP Server Integration**

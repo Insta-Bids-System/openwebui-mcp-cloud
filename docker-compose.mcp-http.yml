@@ -25,4 +25,5 @@ services:
 
 networks:
   local-ai-net:
+    name: openwebui-mcp_local-ai-net
     external: true
