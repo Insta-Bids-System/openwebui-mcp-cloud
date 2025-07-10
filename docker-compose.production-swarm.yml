@@ -1,0 +1,259 @@
+version: '3.8'
+
+networks:
+  mcp-production:
+    driver: overlay
+    attachable: true
+
+volumes:
+  redis-data:
+  postgres-data:
+  workspace-data:
+
+services:
+  # Load Balancer / API Gateway
+  mcp-gateway:
+    image: nginx:alpine
+    configs:
+      - source: nginx-config
+        target: /etc/nginx/nginx.conf
+    ports:
+      - "8100:80"
+      - "9090:9090"  # Metrics
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: any
+        delay: 5s
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+    networks:
+      - mcp-production
+
+  # Redis for caching and state
+  redis:
+    image: redis:7-alpine
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 2gb
+      --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+    networks:
+      - mcp-production
+
+  # PostgreSQL for persistence
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: mcp_production
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+    networks:
+      - mcp-production
+
+  # Desktop Commander MCP Service
+  desktop-commander:
+    image: ${REGISTRY}/desktop-commander-mcp:${VERSION:-latest}
+    environment:
+      MCP_API_KEY: ${MCP_API_KEY}
+      WORKSPACE_PATH: /workspace
+      REDIS_URL: redis://redis:6379
+      LOG_LEVEL: info
+    volumes:
+      - workspace-data:/workspace
+    deploy:
+      replicas: 4
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 3
+      update_config:
+        parallelism: 2
+        delay: 10s
+        failure_action: rollback
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - mcp-production
+
+  # GitHub MCP Service
+  github-mcp:
+    image: ${REGISTRY}/github-mcp:${VERSION:-latest}
+    environment:
+      MCP_API_KEY: ${MCP_API_KEY}
+      GITHUB_TOKEN: ${GITHUB_TOKEN}
+      GITHUB_DEFAULT_OWNER: ${GITHUB_DEFAULT_OWNER}
+      REDIS_URL: redis://redis:6379
+      LOG_LEVEL: info
+    deploy:
+      replicas: 3
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 3
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - mcp-production
+
+  # Droplet Executor MCP Service (if using)
+  droplet-executor:
+    image: ${REGISTRY}/droplet-executor-mcp:${VERSION:-latest}
+    environment:
+      MCP_API_KEY: ${MCP_API_KEY}
+      DO_API_TOKEN: ${DO_API_TOKEN}
+      REDIS_URL: redis://redis:6379
+      LOG_LEVEL: info
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 3
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - mcp-production
+
+  # Tool Manager Service
+  tool-manager:
+    build:
+      context: ./mcp-tool-manager
+      dockerfile: Dockerfile
+    image: ${REGISTRY}/mcp-tool-manager:${VERSION:-latest}
+    environment:
+      REDIS_URL: redis://redis:6379
+      POSTGRES_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/mcp_production
+      LOG_LEVEL: info
+      METRICS_PORT: 9090
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: any
+        delay: 5s
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+    ports:
+      - "9091:9090"  # Metrics
+    networks:
+      - mcp-production
+
+  # Monitoring Dashboard
+  monitoring:
+    build:
+      context: ./mcp-tool-manager
+      dockerfile: Dockerfile.monitoring
+    image: ${REGISTRY}/mcp-monitoring:${VERSION:-latest}
+    environment:
+      REDIS_URL: redis://redis:6379
+      POSTGRES_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/mcp_production
+      DASHBOARD_PORT: 3000
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+    ports:
+      - "3000:3000"  # Dashboard
+    networks:
+      - mcp-production
+
+  # Auto-scaler service
+  autoscaler:
+    build:
+      context: ./mcp-tool-manager
+      dockerfile: Dockerfile.autoscaler
+    image: ${REGISTRY}/mcp-autoscaler:${VERSION:-latest}
+    environment:
+      DOCKER_HOST: unix:///var/run/docker.sock
+      REDIS_URL: redis://redis:6379
+      SCALE_CHECK_INTERVAL: 30
+      CPU_SCALE_THRESHOLD: 70
+      MEMORY_SCALE_THRESHOLD: 80
+      QUEUE_SCALE_THRESHOLD: 100
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: any
+        delay: 10s
+    networks:
+      - mcp-production
+
+configs:
+  nginx-config:
+    external: true
+    name: mcp-nginx-config-v1
+
+secrets:
+  mcp-api-key:
+    external: true
+  github-token:
+    external: true
+  postgres-password:
+    external: true
+  do-api-token:
+    external: true
