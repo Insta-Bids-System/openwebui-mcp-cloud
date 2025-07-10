@@ -1,0 +1,59 @@
+version: '3.9'
+
+services:
+  # OpenWebUI with SQLite
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: local-open-webui-sqlite
+    ports:
+      - "8080:8080"
+    environment:
+      - WEBUI_AUTH=false
+      - ENABLE_COMMUNITY_SHARING=false
+      - ENABLE_MESSAGE_RATING=true
+      - DEFAULT_LOCALE=en
+    volumes:
+      - ./data/openwebui:/app/backend/data
+    networks:
+      - local-ai-net
+
+  # GitHub MCP Tools
+  mcpo-github:
+    image: ghcr.io/open-webui/mcpo:main
+    container_name: local-mcpo-github
+    ports:
+      - "8102:8000"
+    command: [
+      "--host", "0.0.0.0", 
+      "--port", "8000", 
+      "--api-key", "${MCP_API_KEY}", 
+      "--", 
+      "npx", "-y", "@modelcontextprotocol/server-github"
+    ]
+    environment:
+      - GITHUB_PERSONAL_ACCESS_TOKEN=${GITHUB_TOKEN}
+    networks:
+      - local-ai-net
+
+  # Filesystem MCP Tools
+  mcpo-filesystem:
+    image: ghcr.io/open-webui/mcpo:main
+    container_name: local-mcpo-filesystem
+    ports:
+      - "8103:8000"
+    command: [
+      "--host", "0.0.0.0", 
+      "--port", "8000", 
+      "--api-key", "${MCP_API_KEY}", 
+      "--", 
+      "npx", "-y", "@modelcontextprotocol/server-filesystem", 
+      "/workspace"
+    ]
+    volumes:
+      - ./data/workspace:/workspace
+    networks:
+      - local-ai-net
+
+networks:
+  local-ai-net:
+    driver: bridge

@@ -28,9 +28,9 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - DATABASE_URL=${POSTGRES_URL}
+      - DATABASE_URL=postgresql://postgres:localpassword@postgres:5432/openwebui
       - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY}
-      - REDIS_URL=${REDIS_URL}
+      - REDIS_URL=redis://redis:6379/0
       - ENABLE_COMMUNITY_SHARING=false
       - ENABLE_MESSAGE_RATING=true
       - DEFAULT_LOCALE=en
@@ -43,36 +43,32 @@ services:
     networks:
       - local-ai-net
 
-  # Your custom MCP server
-  mcp-server:
-    build: ./mcp-server
-    container_name: local-mcp-server
-    environment:
-      - OPENWEBUI_URL=http://open-webui:8080
-      - OPENWEBUI_API_KEY=${OPENWEBUI_API_KEY}
-      - REDIS_URL=${REDIS_URL}
-    volumes:
-      - ./data/workspace:/workspace
-    networks:
-      - local-ai-net
-
-  # MCPO Bridge for OpenWebUI tools
-  mcpo-openwebui:
-    image: ghcr.io/open-webui/mcpo:main
-    container_name: local-mcpo-openwebui
-    ports:
-      - "8101:8000"
-    command: [
-      "--host", "0.0.0.0", 
-      "--port", "8000", 
-      "--api-key", "${MCP_API_KEY}", 
-      "--", 
-      "python", "-m", "mcp_server"
-    ]
-    depends_on:
-      - mcp-server
-    networks:
-      - local-ai-net
+  # Custom MCP server with OpenWebUI tools - temporarily disabled
+  # Note: This requires fixing the stdio connection between MCPO and the Python-based MCP server
+  # For now, use the working MCP tools (GitHub, Filesystem, Memory, Brave Search)
+  
+  # mcp-server:
+  #   build: ./mcp-server
+  #   container_name: local-mcp-server
+  #   environment:
+  #     - OPENWEBUI_URL=http://open-webui:8080
+  #     - OPENWEBUI_API_KEY=${OPENWEBUI_API_KEY}
+  #     - REDIS_URL=redis://redis:6379
+  #   volumes:
+  #     - ./data/workspace:/workspace
+  #   networks:
+  #     - local-ai-net
+  #   ports:
+  #     - "8888:8888"
+  
+  # mcpo-openwebui:
+  #   image: ghcr.io/open-webui/mcpo:main
+  #   container_name: local-mcpo-openwebui
+  #   ports:
+  #     - "8101:8000"
+  #   # Needs proper stdio connection configuration
+  #   networks:
+  #     - local-ai-net
 
   # GitHub MCP Tools
   mcpo-github:
